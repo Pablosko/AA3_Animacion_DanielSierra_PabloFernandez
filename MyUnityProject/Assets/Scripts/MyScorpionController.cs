@@ -13,13 +13,15 @@ namespace OctopusController
         //TAIL
         Transform tailTarget;
         Transform tailEndEffector;
+        public Transform body;
+
         MyTentacleController _tail;
 
         float animDuration;
         float currentTime = 0;
         bool isPlaying = false;
         bool StartTail = false;
-        float distanceBetweenFutureBases = 1f;
+        float distanceBetweenFutureBases = 0.5f;
         //LEGS
         Transform[] legTargets = new Transform[6];
         Transform[] legFutureBases = new Transform[6];
@@ -31,19 +33,27 @@ namespace OctopusController
         float threeshold = 0.05f;
         float tailRate = 120.0f;
 
+        bool[] updateBases;
+        float[] updateBasesTime;
+        Vector3[] updateBasesPos;
+
         #region public
         public void InitLegs(Transform[] LegRoots, Transform[] LegFutureBases, Transform[] LegTargets)
         {
             _legs = new MyTentacleController[LegRoots.Length];
+            updateBases = new bool[LegRoots.Length];
+            updateBasesTime = new float[LegRoots.Length];
+            updateBasesPos = new Vector3[LegRoots.Length];
             for (int i = 0; i < LegRoots.Length; i++)
             {
-                _legs[i] = new MyTentacleController();
+                updateBases[i] = false;
+                   _legs[i] = new MyTentacleController();
                 _legs[i].LoadTentacleJoints(LegRoots[i], TentacleMode.LEG);
                 legFutureBases[i] = LegFutureBases[i];
                 legTargets[i] = LegTargets[i];
                 //TODO: initialize anything needed for the FABRIK implementation
             }
-            distancesBetweenJoints = new float[_legs[0].Bones.Length];
+           distancesBetweenJoints = new float[_legs[0].Bones.Length];
             jointsController = new Vector3[_legs[0].Bones.Length + 1];
         }
 
@@ -74,16 +84,95 @@ namespace OctopusController
 
         public void UpdateIK()
         {
+            UpdateBody();
+            UpdateBases();
+            UpdateBodyRotation();
+
             updateTail();
 
             MovementAnimation();
         }
+
+        void UpdateBases()
+        {
+            for (int i = 0; i < legFutureBases.Length; i++)
+            {
+                RaycastHit hit;
+
+                if(Physics.Raycast(legFutureBases[i].position + new Vector3(0,2,0), -Vector3.up, out hit, 8, Physics.AllLayers))
+                {
+                    legFutureBases[i].position =  new Vector3(legFutureBases[i].position.x, hit.point.y, legFutureBases[i].position.z);
+                }
+
+
+            }
+        }
+        void UpdateBody()
+        {
+            float positionMedia = 0;
+            for (int i = 0; i < legFutureBases.Length; i++)
+            {
+
+                positionMedia += legFutureBases[i].position.y;
+
+            }
+            positionMedia /= legFutureBases.Length;
+
+            body.position = new Vector3(body.position.x, positionMedia+0.75f, body.position.z);
+        }
+        void UpdateBodyRotation()
+        {
+            //Altura media de las patas de la izquierda
+            float positionMedia1 = 0;
+
+            //Altura media de las patas de la derecha
+            float positionMedia2 = 0;
+
+            //Altura media de las patas de delante y centrales
+            float positionMedia3 = 0;
+
+            //Altura media de las patas de detras y centrales
+            float positionMedia4 = 0;
+
+
+            //EjeX
+            for (int i = 0; i < legFutureBases.Length; i+=2)
+            {
+                positionMedia1 += legFutureBases[i].position.y;
+            }
+            for (int i = 1; i < legFutureBases.Length; i += 2)
+            {
+                positionMedia2 += legFutureBases[i].position.y;
+            }
+
+            //EjeZ
+            for (int i = 0; i < 4; i++)
+            {
+                positionMedia3 += legFutureBases[i].position.y;
+            }
+
+            for (int i = 2; i < legFutureBases.Length; i++)
+            {
+                positionMedia4 += legFutureBases[i].position.y;
+            }
+
+
+            float a = positionMedia1 - positionMedia2;
+            float b = positionMedia3 - positionMedia4;
+
+
+
+            body.transform.localEulerAngles = new Vector3(b*15, 0, -a * 15);
+        }
+
         #endregion
 
         #region private
         //TODO: Implement the leg base animations and logic
         private void MovementAnimation()
         {
+            updateLegPos();
+
             if (isPlaying == true)
             {
                 //Play animation only for 5 seconds
@@ -104,9 +193,35 @@ namespace OctopusController
         {
             for (int j = 0; j < 6; j++)
             {
-                if (Vector3.Distance(_legs[j].Bones[0].position, legFutureBases[j].position) > distanceBetweenFutureBases)
+                if (Vector3.Distance(_legs[j].Bones[0].position, legFutureBases[j].position) > distanceBetweenFutureBases && !updateBases[j])
                 {
-                    _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, 1f);
+                    updateBases[j] = true;
+                    updateBasesTime[j] = Time.time;
+                    updateBasesPos[j] = legFutureBases[j].position;
+                }
+
+                if(updateBases[j])
+                {
+                    if((Time.time - updateBasesTime[j]) <= 0.1f)
+                    {
+                        _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, (Time.time - updateBasesTime[j]));
+
+                        float elapse = (Time.time - updateBasesTime[j]);
+                        if (elapse >= 0.05f)
+                        {
+                            elapse = 0.05f - (elapse - 0.05f);
+                        }
+                        elapse *= 0.5f;
+
+                        _legs[j].Bones[0].position = new Vector3(_legs[j].Bones[0].position.x, _legs[j].Bones[0].position.y + elapse, _legs[j].Bones[0].position.z);
+
+                    }
+                    else
+                    {
+                        _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, 1f);
+                        updateBases[j] = false;
+
+                    }
                 }
                 updateLegs(j);
             }
