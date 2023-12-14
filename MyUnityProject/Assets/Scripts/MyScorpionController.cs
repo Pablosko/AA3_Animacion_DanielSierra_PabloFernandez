@@ -33,20 +33,27 @@ namespace OctopusController
         float threeshold = 0.05f;
         float tailRate = 120.0f;
 
+        bool[] updateBases;
+        float[] updateBasesTime;
+        Vector3[] updateBasesPos;
 
         #region public
         public void InitLegs(Transform[] LegRoots, Transform[] LegFutureBases, Transform[] LegTargets)
         {
             _legs = new MyTentacleController[LegRoots.Length];
+            updateBases = new bool[LegRoots.Length];
+            updateBasesTime = new float[LegRoots.Length];
+            updateBasesPos = new Vector3[LegRoots.Length];
             for (int i = 0; i < LegRoots.Length; i++)
             {
-                _legs[i] = new MyTentacleController();
+                updateBases[i] = false;
+                   _legs[i] = new MyTentacleController();
                 _legs[i].LoadTentacleJoints(LegRoots[i], TentacleMode.LEG);
                 legFutureBases[i] = LegFutureBases[i];
                 legTargets[i] = LegTargets[i];
                 //TODO: initialize anything needed for the FABRIK implementation
             }
-            distancesBetweenJoints = new float[_legs[0].Bones.Length];
+           distancesBetweenJoints = new float[_legs[0].Bones.Length];
             jointsController = new Vector3[_legs[0].Bones.Length + 1];
         }
 
@@ -186,9 +193,35 @@ namespace OctopusController
         {
             for (int j = 0; j < 6; j++)
             {
-                if (Vector3.Distance(_legs[j].Bones[0].position, legFutureBases[j].position) > distanceBetweenFutureBases)
+                if (Vector3.Distance(_legs[j].Bones[0].position, legFutureBases[j].position) > distanceBetweenFutureBases && !updateBases[j])
                 {
-                    _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, 1f);
+                    updateBases[j] = true;
+                    updateBasesTime[j] = Time.time;
+                    updateBasesPos[j] = legFutureBases[j].position;
+                }
+
+                if(updateBases[j])
+                {
+                    if((Time.time - updateBasesTime[j]) <= 0.1f)
+                    {
+                        _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, (Time.time - updateBasesTime[j]));
+
+                        float elapse = (Time.time - updateBasesTime[j]);
+                        if (elapse >= 0.05f)
+                        {
+                            elapse = 0.05f - (elapse - 0.05f);
+                        }
+                        elapse *= 0.5f;
+
+                        _legs[j].Bones[0].position = new Vector3(_legs[j].Bones[0].position.x, _legs[j].Bones[0].position.y + elapse, _legs[j].Bones[0].position.z);
+
+                    }
+                    else
+                    {
+                        _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, 1f);
+                        updateBases[j] = false;
+
+                    }
                 }
                 updateLegs(j);
             }
