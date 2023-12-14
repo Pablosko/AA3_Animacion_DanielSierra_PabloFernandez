@@ -13,13 +13,15 @@ namespace OctopusController
         //TAIL
         Transform tailTarget;
         Transform tailEndEffector;
+        public Transform body;
+
         MyTentacleController _tail;
 
         float animDuration;
         float currentTime = 0;
         bool isPlaying = false;
         bool StartTail = false;
-        float distanceBetweenFutureBases = 1f;
+        float distanceBetweenFutureBases = 0.5f;
         //LEGS
         Transform[] legTargets = new Transform[6];
         Transform[] legFutureBases = new Transform[6];
@@ -30,6 +32,7 @@ namespace OctopusController
         private float[] distancesBetweenJoints;
         float threeshold = 0.05f;
         float tailRate = 120.0f;
+
 
         #region public
         public void InitLegs(Transform[] LegRoots, Transform[] LegFutureBases, Transform[] LegTargets)
@@ -74,16 +77,95 @@ namespace OctopusController
 
         public void UpdateIK()
         {
+            UpdateBody();
+            UpdateBases();
+            UpdateBodyRotation();
+
             updateTail();
 
             MovementAnimation();
         }
+
+        void UpdateBases()
+        {
+            for (int i = 0; i < legFutureBases.Length; i++)
+            {
+                RaycastHit hit;
+
+                if(Physics.Raycast(legFutureBases[i].position + new Vector3(0,2,0), -Vector3.up, out hit, 8, Physics.AllLayers))
+                {
+                    legFutureBases[i].position =  new Vector3(legFutureBases[i].position.x, hit.point.y, legFutureBases[i].position.z);
+                }
+
+
+            }
+        }
+        void UpdateBody()
+        {
+            float positionMedia = 0;
+            for (int i = 0; i < legFutureBases.Length; i++)
+            {
+
+                positionMedia += legFutureBases[i].position.y;
+
+            }
+            positionMedia /= legFutureBases.Length;
+
+            body.position = new Vector3(body.position.x, positionMedia+0.75f, body.position.z);
+        }
+        void UpdateBodyRotation()
+        {
+            //Altura media de las patas de la izquierda
+            float positionMedia1 = 0;
+
+            //Altura media de las patas de la derecha
+            float positionMedia2 = 0;
+
+            //Altura media de las patas de delante y centrales
+            float positionMedia3 = 0;
+
+            //Altura media de las patas de detras y centrales
+            float positionMedia4 = 0;
+
+
+            //EjeX
+            for (int i = 0; i < legFutureBases.Length; i+=2)
+            {
+                positionMedia1 += legFutureBases[i].position.y;
+            }
+            for (int i = 1; i < legFutureBases.Length; i += 2)
+            {
+                positionMedia2 += legFutureBases[i].position.y;
+            }
+
+            //EjeZ
+            for (int i = 0; i < 4; i++)
+            {
+                positionMedia3 += legFutureBases[i].position.y;
+            }
+
+            for (int i = 2; i < legFutureBases.Length; i++)
+            {
+                positionMedia4 += legFutureBases[i].position.y;
+            }
+
+
+            float a = positionMedia1 - positionMedia2;
+            float b = positionMedia3 - positionMedia4;
+
+
+
+            body.transform.localEulerAngles = new Vector3(b*15, 0, -a * 15);
+        }
+
         #endregion
 
         #region private
         //TODO: Implement the leg base animations and logic
         private void MovementAnimation()
         {
+            updateLegPos();
+
             if (isPlaying == true)
             {
                 //Play animation only for 5 seconds
