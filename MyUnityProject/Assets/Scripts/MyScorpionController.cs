@@ -34,7 +34,7 @@ namespace OctopusController
         float tailRate = 20.0f;
         public float shootForce = 1;
 
-        public bool shoot = false;
+        public bool shoot = true;
         bool[] updateBases;
         float[] updateBasesTime;
         Vector3[] updateBasesPos;
@@ -250,8 +250,7 @@ namespace OctopusController
         {
             if((Time.time- shootTime)>2&& shoot)
             {
-                StartTail = false;
-                   shoot = false;
+                shoot = false;
                 restart();
             }
 

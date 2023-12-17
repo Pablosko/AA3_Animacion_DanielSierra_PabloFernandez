@@ -31,6 +31,8 @@ public class IK_Scorpion : MonoBehaviour
 
     public Vector3[] futureLegBasesStart;
     public GameObject[] bases;
+
+    int direction = 1;
     // Start is called before the first frame update
     void Start()
     {
@@ -65,14 +67,20 @@ public class IK_Scorpion : MonoBehaviour
             animTime = 0;
             animPlaying = true;
         }
-            if (Input.GetKey(KeyCode.A)&& _myController.StartTail && !_myController.shoot)
-            {
-                _myController.shootForce += Time.deltaTime;
-            }
-            if ((Input.GetKeyUp(KeyCode.A) || _myController.shootForce > 5) && _myController.StartTail && !_myController.shoot)
-            {
-                _myController.Shoot();
-            }
+        if (Input.GetKey(KeyCode.Space) && !_myController.shoot)
+        {
+            _myController.StartTail = true;
+            if (_myController.shootForce < 1)
+                direction = 1;
+            if (_myController.shootForce > 5)
+                direction = -1;
+
+            _myController.shootForce += Time.deltaTime * direction;
+        }
+        if ((Input.GetKeyUp(KeyCode.Space)) && !_myController.shoot)
+        {
+            _myController.Shoot();
+        }
 
    
 
@@ -82,6 +90,7 @@ public class IK_Scorpion : MonoBehaviour
         }
         else if (animTime >= animDuration && animPlaying)
         {
+            _myController.shoot = false;
 
             Body.position = EndPos.position;
             for (int i = 0; i < bases.Length; i++)
@@ -95,6 +104,7 @@ public class IK_Scorpion : MonoBehaviour
     }
     public void Restart()
     {
+        direction = 1;
         _myController.shootForce = 1;
         anim.SetTrigger("Restart");
         Body.parent.localPosition = Vector3.zero;
