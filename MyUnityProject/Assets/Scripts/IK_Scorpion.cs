@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using OctopusController;
+using UnityEngine.UI;
 
 public class IK_Scorpion : MonoBehaviour
 {
+    public Slider force;
     MyScorpionController _myController= new MyScorpionController();
     public Animator anim;
 
@@ -44,11 +46,15 @@ public class IK_Scorpion : MonoBehaviour
 
         }
     }
-
+    public float getForce()
+    {
+        return _myController.shootForce;
+    }
     // Update is called once per frame
     void Update()
     {
-        if(animPlaying)
+        force.value = ((_myController.shootForce - 1f) / 4f);
+        if (animPlaying)
             animTime += Time.deltaTime;
 
         NotifyTailTarget();
@@ -59,6 +65,16 @@ public class IK_Scorpion : MonoBehaviour
             animTime = 0;
             animPlaying = true;
         }
+            if (Input.GetKey(KeyCode.A)&& _myController.StartTail && !_myController.shoot)
+            {
+                _myController.shootForce += Time.deltaTime;
+            }
+            if ((Input.GetKeyUp(KeyCode.A) || _myController.shootForce > 5) && _myController.StartTail && !_myController.shoot)
+            {
+                _myController.Shoot();
+            }
+
+   
 
         if (animTime < animDuration)
         {
@@ -79,9 +95,9 @@ public class IK_Scorpion : MonoBehaviour
     }
     public void Restart()
     {
+        _myController.shootForce = 1;
         anim.SetTrigger("Restart");
         Body.parent.localPosition = Vector3.zero;
-
 
 
         Body.position = StartPos.position;
