@@ -33,6 +33,7 @@ namespace OctopusController
         float threeshold = 0.05f;
         float tailRate = 20.0f;
         public float shootForce = 1;
+        public float maxShootForce = 5;
 
         public bool shoot = true;
         bool[] updateBases;

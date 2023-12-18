@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public class IK_Scorpion : MonoBehaviour
 {
-    public Slider force;
+    public Slider sliderForce;
     MyScorpionController _myController= new MyScorpionController();
     public Animator anim;
 
@@ -55,7 +55,10 @@ public class IK_Scorpion : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        force.value = ((_myController.shootForce - 1f) / 4f);
+        sliderForce.minValue = 1;
+        sliderForce.maxValue = _myController.maxShootForce;
+        sliderForce.value = _myController.shootForce;
+
         if (animPlaying)
             animTime += Time.deltaTime;
 
@@ -70,19 +73,23 @@ public class IK_Scorpion : MonoBehaviour
         if (Input.GetKey(KeyCode.Space) && !_myController.shoot)
         {
             _myController.StartTail = true;
-            if (_myController.shootForce < 1)
-                direction = 1;
-            if (_myController.shootForce > 5)
-                direction = -1;
-
             _myController.shootForce += Time.deltaTime * direction;
+
+            if (_myController.shootForce <= 1) 
+            {
+                direction = 1;
+                _myController.shootForce = 1;
+            }
+            if (_myController.shootForce >= _myController.maxShootForce) 
+            {
+                direction = -1;
+                _myController.shootForce = _myController.maxShootForce;
+            }
         }
         if ((Input.GetKeyUp(KeyCode.Space)) && !_myController.shoot)
         {
             _myController.Shoot();
         }
-
-   
 
         if (animTime < animDuration)
         {
