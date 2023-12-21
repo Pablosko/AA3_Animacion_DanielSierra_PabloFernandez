@@ -31,9 +31,8 @@ namespace OctopusController
         private Vector3[] jointsController;
         private float[] distancesBetweenJoints;
         float threeshold = 0.05f;
-        float tailRate = 20.0f;
+        float tailRate = 5.0f;
         public float shootForce = 1;
-        public float maxShootForce = 5;
 
         public bool shoot = true;
         bool[] updateBases;
@@ -42,6 +41,7 @@ namespace OctopusController
 
         float deceleration = 1;
         float shootTime;
+        public float maxShootForce = 10;
         #region public
         public void InitLegs(Transform[] LegRoots, Transform[] LegFutureBases, Transform[] LegTargets)
         {
@@ -52,13 +52,13 @@ namespace OctopusController
             for (int i = 0; i < LegRoots.Length; i++)
             {
                 updateBases[i] = false;
-                   _legs[i] = new MyTentacleController();
+                _legs[i] = new MyTentacleController();
                 _legs[i].LoadTentacleJoints(LegRoots[i], TentacleMode.LEG);
                 legFutureBases[i] = LegFutureBases[i];
                 legTargets[i] = LegTargets[i];
                 //TODO: initialize anything needed for the FABRIK implementation
             }
-           distancesBetweenJoints = new float[_legs[0].Bones.Length];
+            distancesBetweenJoints = new float[_legs[0].Bones.Length];
             jointsController = new Vector3[_legs[0].Bones.Length + 1];
         }
 
@@ -81,7 +81,7 @@ namespace OctopusController
         public void NotifyStartWalk()
         {
             StartTail = false;
-               isPlaying = true;
+            isPlaying = true;
             animDuration = 5;
             currentTime = 0;
         }
@@ -105,9 +105,9 @@ namespace OctopusController
             {
                 RaycastHit hit;
 
-                if(Physics.Raycast(legFutureBases[i].position + new Vector3(0,2,0), -Vector3.up, out hit, 8, Physics.AllLayers))
+                if (Physics.Raycast(legFutureBases[i].position + new Vector3(0, 2, 0), -Vector3.up, out hit, 8, Physics.AllLayers))
                 {
-                    legFutureBases[i].position =  new Vector3(legFutureBases[i].position.x, hit.point.y, legFutureBases[i].position.z);
+                    legFutureBases[i].position = new Vector3(legFutureBases[i].position.x, hit.point.y, legFutureBases[i].position.z);
                 }
 
 
@@ -124,7 +124,7 @@ namespace OctopusController
             }
             positionMedia /= legFutureBases.Length;
 
-            body.position = new Vector3(body.position.x, positionMedia+0.75f, body.position.z);
+            body.position = new Vector3(body.position.x, positionMedia + 0.75f, body.position.z);
         }
         void UpdateBodyRotation()
         {
@@ -142,7 +142,7 @@ namespace OctopusController
 
 
             //EjeX
-            for (int i = 0; i < legFutureBases.Length; i+=2)
+            for (int i = 0; i < legFutureBases.Length; i += 2)
             {
                 positionMedia1 += legFutureBases[i].position.y;
             }
@@ -168,7 +168,7 @@ namespace OctopusController
 
 
 
-            body.transform.localEulerAngles = new Vector3(b*15, 0, -a * 15);
+            body.transform.localEulerAngles = new Vector3(b * 15, 0, -a * 15);
         }
 
         #endregion
@@ -206,9 +206,9 @@ namespace OctopusController
                     updateBasesPos[j] = legFutureBases[j].position;
                 }
 
-                if(updateBases[j])
+                if (updateBases[j])
                 {
-                    if((Time.time - updateBasesTime[j]) <= 0.1f)
+                    if ((Time.time - updateBasesTime[j]) <= 0.1f)
                     {
                         _legs[j].Bones[0].position = Vector3.Lerp(_legs[j].Bones[0].position, legFutureBases[j].position, (Time.time - updateBasesTime[j]));
 
@@ -242,14 +242,14 @@ namespace OctopusController
         {
             for (int i = 0; i < _tail.Bones.Length - 2; i++)
             {
-                _tail.Bones[i].transform.localEulerAngles = new Vector3(0,0,0);
+                _tail.Bones[i].transform.localEulerAngles = new Vector3(0, 0, 0);
 
             }
         }
         //TODO: implement Gradient Descent method to move tail if necessary
         private void updateTail()
         {
-            if((Time.time- shootTime)>2&& shoot)
+            if ((Time.time - shootTime) > 2 && shoot)
             {
                 shoot = false;
                 restart();
@@ -264,7 +264,7 @@ namespace OctopusController
                 {
                     float rotation = 0;
 
-                    if(!shoot)
+                    if (!shoot)
                     {
                         if (i == 0)
                         {
@@ -276,29 +276,31 @@ namespace OctopusController
                     }
                     else
                     {
-                        deceleration = 1 - (Math.Clamp(1 - (Vector3.Distance(tailEndEffector.transform.position, tailTarget.transform.position)/2), 0, 0.75f));
+                        deceleration = 1 - (Math.Clamp(1 - (Vector3.Distance(tailEndEffector.transform.position, tailTarget.transform.position) / 2), 0, 0.75f));
                         deceleration = (float)Math.Pow(deceleration, 2);
 
                         //Rotate the other joints in only x axis
                         rotation = CalculateRotation(_tail.Bones[i], new Vector3(1, 0, 0));
-                        _tail.Bones[i].transform.Rotate((new Vector3(1, 0, 0) * -rotation) * tailRate * shootForce* deceleration);
+                        _tail.Bones[i].transform.Rotate((new Vector3(1, 0, 0) * -rotation) * tailRate * shootForce * deceleration);
                     }
 
 
 
 
-                    
+
 
                 }
             }
         }
         private float CalculateRotation(Transform actualJoint, Vector3 axis)
         {
+            float delta = 0.01f;
+
             float distance = Vector3.Distance(tailEndEffector.transform.position, tailTarget.transform.position);
-            actualJoint.transform.Rotate(axis * 0.01f);
+            actualJoint.transform.Rotate(axis * delta);
             float distance2 = Vector3.Distance(tailEndEffector.transform.position, tailTarget.transform.position);
-            actualJoint.transform.Rotate(axis * -0.01f);
-            return (distance2 - distance) / 0.01f;
+            actualJoint.transform.Rotate(axis * -delta);
+            return (distance2 - distance) / delta;
         }
 
         //TODO: implement fabrik method to move legs 
