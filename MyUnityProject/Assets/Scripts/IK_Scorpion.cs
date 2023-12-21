@@ -2,9 +2,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using OctopusController;
+using UnityEngine.UI;
 
 public class IK_Scorpion : MonoBehaviour
 {
+    public Slider sliderForce;
     MyScorpionController _myController= new MyScorpionController();
     public Animator anim;
 
@@ -29,6 +31,8 @@ public class IK_Scorpion : MonoBehaviour
 
     public Vector3[] futureLegBasesStart;
     public GameObject[] bases;
+
+    int direction = 1;
     // Start is called before the first frame update
     void Start()
     {
@@ -44,11 +48,18 @@ public class IK_Scorpion : MonoBehaviour
 
         }
     }
-
+    public float getForce()
+    {
+        return _myController.shootForce;
+    }
     // Update is called once per frame
     void Update()
     {
-        if(animPlaying)
+        sliderForce.minValue = 1;
+        sliderForce.maxValue = _myController.maxShootForce;
+        sliderForce.value = _myController.shootForce;
+
+        if (animPlaying)
             animTime += Time.deltaTime;
 
         NotifyTailTarget();
@@ -59,6 +70,26 @@ public class IK_Scorpion : MonoBehaviour
             animTime = 0;
             animPlaying = true;
         }
+        if (Input.GetKey(KeyCode.Space) && !_myController.shoot)
+        {
+            _myController.StartTail = true;
+            _myController.shootForce += Time.deltaTime * direction;
+
+            if (_myController.shootForce <= 1) 
+            {
+                direction = 1;
+                _myController.shootForce = 1;
+            }
+            if (_myController.shootForce >= _myController.maxShootForce) 
+            {
+                direction = -1;
+                _myController.shootForce = _myController.maxShootForce;
+            }
+        }
+        if ((Input.GetKeyUp(KeyCode.Space)) && !_myController.shoot)
+        {
+            _myController.Shoot();
+        }
 
         if (animTime < animDuration)
         {
@@ -66,6 +97,7 @@ public class IK_Scorpion : MonoBehaviour
         }
         else if (animTime >= animDuration && animPlaying)
         {
+            _myController.shoot = false;
 
             Body.position = EndPos.position;
             for (int i = 0; i < bases.Length; i++)
@@ -79,9 +111,10 @@ public class IK_Scorpion : MonoBehaviour
     }
     public void Restart()
     {
+        direction = 1;
+        _myController.shootForce = 1;
         anim.SetTrigger("Restart");
         Body.parent.localPosition = Vector3.zero;
-
 
 
         Body.position = StartPos.position;
