@@ -168,6 +168,7 @@ namespace OctopusController
                         _tentacles[i].Bones[j].transform.localRotation = Quaternion.Lerp(_tentacles[i].Bones[j].transform.localRotation, swing.normalized, 1);
 
                     }
+                    _tentacles[i].Bones[j].transform.localEulerAngles = new Vector3(_tentacles[i].Bones[j].transform.localEulerAngles.x,0,0);
 
 
 
