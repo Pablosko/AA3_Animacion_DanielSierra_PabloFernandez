@@ -52,8 +52,9 @@ public class IK_tentacles : MonoBehaviour
 
     }
 
-    public void NotifyShoot()
+    public void NotifyShoot(int i)
     {
+        if(i % 2 == 1)
         _myController.NotifyShoot();
     }
 
