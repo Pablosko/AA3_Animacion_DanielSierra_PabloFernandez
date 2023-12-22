@@ -151,7 +151,9 @@ namespace OctopusController
                     Quaternion twist = new Quaternion(0, _tentacles[i].Bones[j].transform.localRotation.y, 0, _tentacles[i].Bones[j].transform.localRotation.w);
                     twist = twist.normalized;
                     Quaternion swing = _tentacles[i].Bones[j].transform.localRotation * Quaternion.Inverse(twist);
-                    _tentacles[i].Bones[j].transform.localRotation = swing.normalized;
+                    _tentacles[i].Bones[j].transform.localRotation = Quaternion.Slerp(_tentacles[i].Bones[j].transform.localRotation, swing.normalized, Time.deltaTime * 10f);
+
+
 
                 }
 
