@@ -27,6 +27,8 @@ namespace OctopusController
         float start;
         float end;
         bool isShooting;
+
+        float shootTime;
         #region public methods
         //DO NOT CHANGE THE PUBLIC METHODS!!
 
@@ -81,7 +83,7 @@ namespace OctopusController
             start = 0;
             end = 3;
             isShooting = true;
-
+            shootTime = Time.time;
         }
 
 
@@ -151,7 +153,22 @@ namespace OctopusController
                     Quaternion twist = new Quaternion(0, _tentacles[i].Bones[j].transform.localRotation.y, 0, _tentacles[i].Bones[j].transform.localRotation.w);
                     twist = twist.normalized;
                     Quaternion swing = _tentacles[i].Bones[j].transform.localRotation * Quaternion.Inverse(twist);
-                    _tentacles[i].Bones[j].transform.localRotation = Quaternion.Slerp(_tentacles[i].Bones[j].transform.localRotation, swing.normalized, Time.deltaTime * 10f);
+
+                    
+                    if (isShooting)
+                    {
+                        if (i == tentacle)
+                            _tentacles[i].Bones[j].transform.localRotation = Quaternion.Lerp(_tentacles[i].Bones[j].transform.localRotation, swing.normalized, (Time.time- shootTime)/5);
+                        else
+                            _tentacles[i].Bones[j].transform.localRotation = Quaternion.Lerp(_tentacles[i].Bones[j].transform.localRotation, swing.normalized, 1);
+
+                    }
+                    else
+                    {
+                        _tentacles[i].Bones[j].transform.localRotation = Quaternion.Lerp(_tentacles[i].Bones[j].transform.localRotation, swing.normalized, 1);
+
+                    }
+                    _tentacles[i].Bones[j].transform.localEulerAngles = new Vector3(_tentacles[i].Bones[j].transform.localEulerAngles.x,0,0);
 
 
 
