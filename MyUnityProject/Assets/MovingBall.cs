@@ -1,14 +1,28 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class MovingBall : MonoBehaviour
 {
+
+    public Slider slider;
+    [HideInInspector] public Vector3 shootDirection;
+
+    [HideInInspector] public Vector3 velocity;
+    [HideInInspector] public float angularVelocity = 0.1f;
+    [HideInInspector] public Vector3 acceleration;
+    [HideInInspector] public bool forceApplied;
+
+    private float magnusForce = 0;
+
+
     [SerializeField]
     IK_tentacles _myOctopus;
 
     public IK_Scorpion scorpion;
-    //movement speed in units per second
+
+
     [Range(-1.0f, 1.0f)]
     [SerializeField]
     private float _movementSpeed = 5f;
@@ -25,8 +39,14 @@ public class MovingBall : MonoBehaviour
     public float shootForce;
     float shootTimeStart;
     float shootTime  = 2; //With force 1
+
+    int shootCount = 0;
     void Start()
     {
+        slider.minValue = -1;
+        slider.maxValue = 1;
+
+
         for (int i = 0; i < curvePoints; i++)
         {
             curvePointsGameObjects.Add(Instantiate(curvePoint));
@@ -36,6 +56,22 @@ public class MovingBall : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+
+        slider.value = magnusForce;
+
+        if (Input.GetKey(KeyCode.Z))
+        {            
+            if(magnusForce > -1)
+                magnusForce -= Time.deltaTime;
+        }
+        if (Input.GetKey(KeyCode.X))
+        {
+            if (magnusForce < 1)
+                magnusForce += Time.deltaTime;
+
+        }
+
+
         if (!moving)
             CalculateTrajectory();
         else
@@ -43,9 +79,20 @@ public class MovingBall : MonoBehaviour
     }
     void MoveBall()
     {
-        float lerp = (Time.time - shootTimeStart) * shootForce / shootTime;
+            Vector2 auxMagnus = new Vector2(velocity.x, velocity.z).normalized; 
 
-        transform.position = startPos + (_dir * lerp);
+            auxMagnus = -Vector2.Perpendicular(auxMagnus).normalized;
+            acceleration = new Vector3(auxMagnus.x, 0, auxMagnus.y);
+
+            Vector3 gravity = new Vector3(0, -1, 0);
+            acceleration *= magnusForce * 2;
+
+            acceleration += gravity;
+
+            velocity += acceleration * Time.deltaTime;
+            transform.position += velocity * Time.deltaTime;
+            transform.rotation *= Quaternion.AngleAxis(angularVelocity* magnusForce * Time.deltaTime, new Vector3(0, 1, 0));
+            
     }
     void CalculateTrajectory() 
     {
@@ -59,10 +106,7 @@ public class MovingBall : MonoBehaviour
         //update the position
         transform.position = transform.position + new Vector3(-horizontalInput * _movementSpeed * Time.deltaTime, verticalInput * _movementSpeed * Time.deltaTime, 0);
 
-        for (int i = 0; i < curvePoints; i++) 
-        {
-            //curvePointsGameObjects[i].transform.position = CalculatePointOnParabola(transform.position, target.position, 1, (float)i / (float)curvePoints);
-        }
+
 
 
     }
@@ -71,45 +115,28 @@ public class MovingBall : MonoBehaviour
         scorpion.Restart();
         moving = false;
         transform.position = startPos;
+        shootDirection = Vector3.zero;
+        velocity = Vector3.zero;
+        angularVelocity = 0;
+        acceleration = Vector3.zero;
+
     }
     private void OnCollisionEnter(Collision collision)
     {
         if(!moving)
         {
+            shootCount++;
+            shootDirection = (target.transform.position - transform.position).normalized;
+
             shootForce = scorpion.getForce();
+
+            velocity += shootDirection * shootForce * 3;
+
             shootTimeStart = Time.time;
             moving = true;
             Invoke("restart", 5);
-            _myOctopus.NotifyShoot();
+            _myOctopus.NotifyShoot(shootCount);
             startPos = transform.position;
-            _dir = target.transform.position - transform.position;
         }
-    }
-    Vector3 CalculatePointOnParabola(Vector3 pointA, Vector3 pointB, float shootForce, float t)
-    {
-        // Calcular la dirección y la distancia entre los puntos A y B
-        Vector3 direction = (pointB - pointA).normalized;
-        float distance = Vector3.Distance(pointA, pointB);
-
-        // Calcular la altura máxima de la parábola (asumiendo que la parábola es simétrica)
-        float maxHeight = (pointB.y - pointA.y) + (0.5f * (shootForce * shootForce) / Mathf.Abs(Physics.gravity.y));
-
-        // Calcular el tiempo total de vuelo
-        float totalTime = Mathf.Sqrt((2 * maxHeight) / Mathf.Abs(Physics.gravity.y));
-
-        // Calcular el tiempo en función del porcentaje t
-        float time = totalTime * t;
-
-        // Calcular la altura en función del tiempo
-        float height = pointA.y + (shootForce * time) + (0.5f * Physics.gravity.y * time * time);
-
-        // Calcular la distancia horizontal en función del tiempo
-        float horizontalDistance = distance * t;
-
-        // Calcular la posición en la trayectoria parabólica
-        Vector3 pointOnParabola = pointA + (direction * horizontalDistance);
-        pointOnParabola.y = height;
-
-        return pointOnParabola;
     }
 }
